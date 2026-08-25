@@ -1,1 +1,153 @@
-<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Telefon Oku"><meta name="theme-color" content="#2563eb"><title>Telefon Oku</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;font-family:system-ui,-apple-system,sans-serif;background:#f0f9ff;overflow:hidden}body{display:flex;justify-content:center;align-items:center}.container{width:100%;height:100%;max-width:480px;display:flex;flex-direction:column;background:#f0f9ff}header{background:linear-gradient(135deg,#1e40af,#1e3a8a);color:white;padding:12px;text-align:center}header h1{font-size:20px;font-weight:700}header p{font-size:11px;opacity:.9}.content{flex:1;display:flex;flex-direction:column;padding:12px;overflow:hidden}.camera-full{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10}video{width:100%;height:100%;object-fit:cover}.camera-controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:11;display:flex;gap:10px}.cam-btn{width:50px;height:50px;border-radius:50%;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,.3)}.cam-capture{background:#16a34a;color:white}.cam-close{background:#dc2626;color:white}.cam-capture:active{background:#15803d}.cam-close:active{background:#b91c1c}.btn{padding:12px 16px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;width:100%}.btn-primary:active{transform:scale(.98)}.phones-list{background:white;border-radius:12px;padding:12px;flex:1;overflow-y:auto}.phone-item{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:1px solid #93c5fd;border-radius:8px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}.phone-num{font-family:monospace;font-size:15px;font-weight:700;color:#0c4a6e}.phone-actions{display:flex;gap:6px}.icon-btn{width:36px;height:36px;border-radius:6px;border:none;cursor:pointer;font-size:18px}.copy-btn{background:#e5e7eb}.call-btn{background:#16a34a;color:white}.call-btn:active{background:#15803d}.error{background:#fee2e2;border-left:3px solid #dc2626;color:#991b1b;padding:10px;border-radius:6px;margin-bottom:12px;font-size:12px}.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.hidden{display:none!important}</style></head><body><div class="container"><header><h1>☎️ Telefon Oku</h1><p>Numaraları okuyup ara</p></header><div class="content" id="content"><button class="btn btn-primary" id="startBtn">📷 Kamera Başlat</button><div id="errorDiv" class="error hidden"></div><div class="phones-list hidden" id="phonesList"><h3 style="font-size:13px;margin-bottom:10px;color:#1f2937">Bulunan Numaralar:</h3><div id="phonesContainer"></div></div></div><div class="camera-full hidden" id="cameraFull"><video id="video" playsinline autoplay></video><div class="camera-controls"><button class="cam-btn cam-capture" id="captureBtn">📸</button><button class="cam-btn cam-close" id="closeBtn">✕</button></div></div></div><canvas id="canvas" style="display:none"></canvas><script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"><\/script><script>const startBtn=document.getElementById("startBtn"),videoEl=document.getElementById("video"),canvasEl=document.getElementById("canvas"),cameraFull=document.getElementById("cameraFull"),captureBtn=document.getElementById("captureBtn"),closeBtn=document.getElementById("closeBtn"),phonesList=document.getElementById("phonesList"),phonesContainer=document.getElementById("phonesContainer"),errorDiv=document.getElementById("errorDiv"),content=document.getElementById("content");let stream=null;window.addEventListener("load",()=>setTimeout(startCamera,300)),startBtn.addEventListener("click",startCamera),captureBtn.addEventListener("click",captureAndRead),closeBtn.addEventListener("click",stopCamera);async function startCamera(){try{errorDiv.classList.add("hidden"),stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}},audio:!1}),videoEl.srcObject=stream,cameraFull.classList.remove("hidden"),content.classList.add("hidden")}catch(e){showError("Kamera hatası: "+e.message)}}function stopCamera(){stream&&stream.getTracks().forEach(e=>e.stop()),cameraFull.classList.add("hidden"),content.classList.remove("hidden")}async function captureAndRead(){const e=canvasEl;e.width=videoEl.videoWidth,e.height=videoEl.videoHeight,e.getContext("2d").drawImage(videoEl,0,0),captureBtn.disabled=!0,captureBtn.innerHTML='<span class="spinner"><\/span>';try{const t=(await Tesseract.recognize(e,"tur")).data.text.match(/(\d{3}[\s\-]?\d{3}[\s\-]?\d{4}|\d{10}|5\d{9}|\(?5\d{2}\)?[\s\-]?\d{3}[\s\-]?\d{4})/g)||[],a=t.map(e=>{let t=e.replace(/[\s\-()]/g,"");return 10===t.length&&!t.startsWith("0")&&(t="0"+t),t}).filter(e=>/^05\d{9}$/.test(e)),r=[...new Set(a)];0===r.length?(showError("Numara bulunamadı."),captureBtn.disabled=!1,captureBtn.innerHTML="📸"):(displayPhones(r),stopCamera())}catch(e){showError("Hata: "+e.message),captureBtn.disabled=!1,captureBtn.innerHTML="📸"}}function displayPhones(e){phonesContainer.innerHTML=e.map(e=>`<div class="phone-item"><span class="phone-num">${e}<\/span><div class="phone-actions"><button class="icon-btn copy-btn" onclick="copy('${e}')">📋<\/button><button class="icon-btn call-btn" onclick="call('${e}')">📞<\/button><\/div><\/div>`).join(""),phonesList.classList.remove("hidden")}function showError(e){errorDiv.textContent=e,errorDiv.classList.remove("hidden")}window.copy=e=>{navigator.clipboard.writeText(e),alert("Kopyalandı: "+e)},window.call=e=>{window.location.href="tel:"+e},window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();let t=e;setTimeout(()=>{const e=document.createElement("button");e.className="btn btn-primary",e.style.cssText="position:fixed;bottom:10px;left:10px;right:10px;z-index:100",e.innerHTML="⬇️ Telefonuma Yükle",e.onclick=()=>{t.prompt(),t.userChoice.then(()=>e.remove())},document.body.appendChild(e)},500)})<\/script></body></html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Telefon Oku">
+    <title>Telefon Oku</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui; background: #f0f9ff; height: 100vh; display: flex; flex-direction: column; }
+        header { background: #1e40af; color: white; padding: 15px; text-align: center; }
+        .container { flex: 1; display: flex; flex-direction: column; padding: 15px; }
+        button { padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-primary:active { background: #1d4ed8; }
+        video { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .video-full { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: none; }
+        .video-full.active { display: flex; flex-direction: column; }
+        .video-full video { display: block; flex: 1; }
+        .controls { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 11; }
+        .controls button { width: 50px; height: 50px; padding: 0; border-radius: 50%; }
+        .btn-capture { background: #16a34a; color: white; }
+        .btn-close { background: #dc2626; color: white; }
+        .phones-list { background: white; border-radius: 10px; padding: 10px; flex: 1; overflow-y: auto; margin-top: 10px; display: none; }
+        .phones-list.active { display: block; }
+        .phone-item { background: #dbeafe; padding: 10px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .phone-num { font-weight: bold; font-size: 16px; }
+        .phone-item button { width: 36px; height: 36px; padding: 0; margin: 0 2px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>☎️ Telefon Oku</h1>
+    </header>
+    <div class="container">
+        <button class="btn-primary" id="startBtn">📷 Kamera Başlat</button>
+        <div class="phones-list" id="phonesList">
+            <h3>Bulunan Numaralar:</h3>
+            <div id="phonesContainer"></div>
+        </div>
+    </div>
+    
+    <div class="video-full" id="videoFull">
+        <video id="video" playsinline autoplay></video>
+        <div class="controls">
+            <button class="btn-capture" id="captureBtn">📸</button>
+            <button class="btn-close" id="closeBtn">✕</button>
+        </div>
+    </div>
+    
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const videoFull = document.getElementById('videoFull');
+        const captureBtn = document.getElementById('captureBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const phonesList = document.getElementById('phonesList');
+        const phonesContainer = document.getElementById('phonesContainer');
+        let stream = null;
+
+        window.addEventListener('load', () => {
+            setTimeout(startCamera, 500);
+        });
+
+        startBtn.addEventListener('click', startCamera);
+        captureBtn.addEventListener('click', captureAndRead);
+        closeBtn.addEventListener('click', stopCamera);
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+                video.srcObject = stream;
+                videoFull.classList.add('active');
+            } catch (err) {
+                alert('Kamera hatası: ' + err.message);
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+            }
+            videoFull.classList.remove('active');
+        }
+
+        async function captureAndRead() {
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            captureBtn.disabled = true;
+            captureBtn.textContent = '⏳';
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(canvas, 'tur');
+                const matches = text.match(/\d{10}|5\d{9}/g) || [];
+                const cleaned = matches.map(n => {
+                    if (n.length === 10 && !n.startsWith('0')) {
+                        return '0' + n;
+                    }
+                    return n;
+                }).filter(n => /^05\d{9}$/.test(n));
+                
+                const unique = [...new Set(cleaned)];
+                
+                if (unique.length === 0) {
+                    alert('Numara bulunamadı');
+                    captureBtn.disabled = false;
+                    captureBtn.textContent = '📸';
+                } else {
+                    displayPhones(unique);
+                    stopCamera();
+                }
+            } catch (err) {
+                alert('Hata: ' + err.message);
+                captureBtn.disabled = false;
+                captureBtn.textContent = '📸';
+            }
+        }
+
+        function displayPhones(phones) {
+            phonesContainer.innerHTML = phones.map(p => `
+                <div class="phone-item">
+                    <span class="phone-num">${p}</span>
+                    <div>
+                        <button onclick="copyPhone('${p}')" style="background:#e5e7eb;color:#000;">📋</button>
+                        <button onclick="callPhone('${p}')" style="background:#16a34a;color:white;">📞</button>
+                    </div>
+                </div>
+            `).join('');
+            phonesList.classList.add('active');
+        }
+
+        window.copyPhone = function(phone) {
+            navigator.clipboard.writeText(phone);
+            alert('Kopyalandı: ' + phone);
+        };
+
+        window.callPhone = function(phone) {
+            window.location.href = 'tel:' + phone;
+        };
+    </script>
+</body>
+</html>
