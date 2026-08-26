@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telefon Oku - QR</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui; background: linear-gradient(135deg, #1e40af, #1e3a8a); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { background: white; border-radius: 15px; padding: 30px; max-width: 500px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        h1 { color: #1e40af; text-align: center; margin-bottom: 10px; font-size: 24px; }
+        p { text-align: center; color: #666; margin-bottom: 25px; font-size: 14px; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        input:focus { outline: none; border-color: #1e40af; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 15px; }
+        button:active { background: #1d4ed8; }
+        #qrCode { text-align: center; margin: 20px 0; }
+        #qrCode img { max-width: 100%; height: auto; }
+        .info { background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb; color: #0c4a6e; font-size: 13px; line-height: 1.6; }
+        .info strong { display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>☎️ Telefon Oku</h1>
+        <p>Masaüstünde numara gir → QR kod oluşur → Telefonunla tara → Ara!</p>
+        
+        <div class="input-group">
+            <label>Telefon Numarasını Gir:</label>
+            <input type="tel" id="phoneInput" placeholder="5XXXXXXXXX" maxlength="10">
+        </div>
+        
+        <button onclick="generateQR()">🔲 QR Kod Oluştur</button>
+        
+        <div id="qrCode"></div>
+        
+        <div class="info">
+            <strong>📱 Telefondan:</strong>
+            1. Bu sayfayı telefondan aç<br>
+            2. QR kodu telefonun kamerasında tara<br>
+            3. Otomatik arayacak!
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
+    <script>
+        function generateQR() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            
+            if (!phone) {
+                alert('Lütfen telefon numarası gir');
+                return;
+            }
+            
+            if (!/^\d{10}$/.test(phone)) {
+                alert('Geçerli bir numara gir (10 hane)');
+                return;
+            }
+            
+            const fullNumber = '0' + phone;
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = '';
+            
+            new QRCode(qrContainer, {
+                text: 'tel:' + fullNumber,
+                width: 256,
+                height: 256,
+                colorDark: '#1e40af',
+                colorLight: '#ffffff'
+            });
+        }
+        
+        document.getElementById('phoneInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') generateQR();
+        });
+    </script>
+</body>
+</html>
